@@ -1,0 +1,14 @@
+﻿@model ToDoTracker.Web.Models.ToDoItemViewModel
+<div id="@Model.RowId" class="alert @Model.AlertClass" role="alert">
+    <div class="col-md-8">
+        @Model.Text
+    </div>
+    <div class="col-md-2">
+        @Model.DeadLineTitle
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-default" onclick="todoDone('#@Model.RowId', false)" style="visibility: @Model.IsDoneStyle"><span class="glyphicon glyphicon-ok"></span></button>
+    </div>
+    <span class="clearfix"></span>
+</div>
+

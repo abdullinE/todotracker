@@ -1,0 +1,122 @@
+﻿@model List<ToDoTracker.Web.Models.ToDoItemViewModel>
+@{
+    Layout = null;
+    Response.Headers["X-UA-Compatible"] = "IE=10";
+}
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta charset="utf-8" />
+        <title>Your ToDo tracker</title>
+        <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+        <meta name="viewport" content="width=device-width" />
+        @Styles.Render("~/Content/css")
+        @Scripts.Render("~/bundles/jquery")
+        @Scripts.Render("~/bundles/bootstrap")
+        @Scripts.Render("~/Scripts/parsedate.js")
+        <script src="/Scripts/jquery.signalR-2.1.1.min.js" type="text/javascript"></script>
+        <script src="/signalr/hubs" type="text/javascript"></script>
+        <script type="text/javascript">
+            var toDoHelper;
+            $(function () {
+                $('#todoText').keyup(function (e) {
+                    if (e.keyCode == 13) {
+                        addToDoItem();
+                    }
+                });
+                //получаем прокси объект чат
+                toDoHelper = $.connection.toDoHelper;
+
+                //определяем метод, вызываемый с серверной част,
+                //параметры естественно должы совпадать
+                toDoHelper.client.addToDoItem = function (message) {
+                    $("#todoAdd").after(message);
+                };
+
+                toDoHelper.client.todoDone = function (id) {
+                    todoDone(id, true);
+                };
+
+                //стартуем все хабы
+                $.connection.hub.start();
+            });
+
+            function addToDoItem() {
+                var text = $('#todoText').val();
+                var value = jsParseDate(text);
+                var data = {
+                    Text: text,
+                    DeadLine: value.date.toUTCString()
+                };
+
+                //alert(value.date);
+                $.ajax({
+                    url: "/Home/Add",
+                    type: "POST",
+                    data: data,
+                    success: function (answer) {
+                        $("#todoAdd").after(answer);
+                        $('#todoText').val('');
+                        toDoHelper.server.send(answer);
+                    }
+                });
+            }
+
+            function todoDone(id, fromServer) {
+
+                var item = $(id);
+                item.attr('class', 'alert alert-success');
+                item.find('button').hide();
+                if (!fromServer) {
+                    $.ajax({
+                        url: "/Home/IsFinished",
+                        type: "POST",
+                        data: {
+                            idString: id
+                        },
+                        success: function (answer) {
+                            if (answer.success)
+                                toDoHelper.server.todoDone(id);
+                        }
+                    });
+                }
+            }
+
+        </script>
+
+    </head>
+    <body>
+        <div class="container body-content">
+            <div class="navbar navbar-inverse navbar-fixed-top">
+                <div class="container">
+                    <div class="navbar-collapse collapse">
+                        <ul class="nav navbar-nav">
+                            <li><h3>Your ToDo tracker</h3></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="jumbotron">
+
+                <div class="form-group">
+                    <input  id="todoText" type="text" class="form-control" placeholder="Enter your todo text">
+                </div>
+                <button type="submit" class="btn btn-default" style="float: right;" onclick="addToDoItem()">Add</button>
+            </div>
+
+            <div id="todoRows" class="container">
+                <div id="todoAdd"></div>
+                @foreach (var item in Model)
+                {
+                    @Html.Partial("ToDoItemBlock",item)
+                }
+            </div>
+            <hr />
+            <footer>
+                <p>&copy; @DateTime.Now.Year – Абдуллин Еламан</p>
+            </footer>
+        </div>
+    </body>
+</html>
